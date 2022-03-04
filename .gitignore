@@ -3,3 +3,4 @@
 *.db
 *.swp
 test.py
+categories.csv
