@@ -59,11 +59,17 @@ def pull():
         wks.batch_clear(["A2:G900"])
         return (True, len(rows))
     else:
+        clear = []
+        cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        for i in range(2, 900):
+            for c in cols:
+                clear.append(c + str(i))
+        wks.batch_clear(clear)
         return (False, fail)
 
 def main():
     "command line ui"
-    functions = (pull,)
+    functions = (pull, test)
     for i, f in enumerate(functions, 1):
         print(str(i) + ": " + f.__name__)
     sel = ask_for_int("select function index, enter '0' to quit: ", len(functions))
