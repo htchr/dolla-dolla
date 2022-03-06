@@ -2,12 +2,11 @@
 
 import sqlite3
 
-food = "/Users/jack/Documents/projects/22-dolla/food.db"
-flow = "/Users/jack/Documents/projects/22-dolla/flow.db"
+money = "/Users/jack/Documents/projects/22-dolla/money.db"
 
 def food_19_22():
     "table for 2019 - 2022 food spending"
-    con = sqlite3.connect(food)
+    con = sqlite3.connect(money)
     cur = con.cursor()
     with con:
         cur.execute("""CREATE TABLE IF NOT EXISTS food (
@@ -22,7 +21,7 @@ def food_19_22():
 
 def flow_table():
     "table to document money flow"
-    con = sqlite3.connect(flow)
+    con = sqlite3.connect(money)
     cur = con.cursor()
     with con:
         cur.execute("""CREATE TABLE IF NOT EXISTS flow (
