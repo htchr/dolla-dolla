@@ -28,7 +28,7 @@ def flow_table():
         cur.execute("""CREATE TABLE IF NOT EXISTS flow (
                        ID INTEGER PRIMARY KEY,
                        amount REAL NOT NULL,
-                       cur INT,
+                       cur TEXT,
                        cc INT,
                        out INT,
                        date INT NOT NULL,
