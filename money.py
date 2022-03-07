@@ -1,9 +1,11 @@
 #!/Users/jack/Documents/projects/22-dolla/venv/bin/python3
 
 import sqlite3
+import csv
 import gspread
 
 db = "/Users/jack/Documents/projects/22-dolla/money.db"
+cat_path = "/Users/jack/Documents/projects/22-dolla/categories.csv"
 
 def ask_for_int(message, max=1000000000):
     """
@@ -11,7 +13,8 @@ def ask_for_int(message, max=1000000000):
     to use in place of regular input() method
     ---
     message: string asking the user for an integer
-    returns i: user input integer
+    max: int cap on the value of the int
+    returns: i, user input integer
     """
     while True:
         i = input(message)
@@ -33,7 +36,7 @@ def pull():
     """
     sa = gspread.service_account()
     sh = sa.open("money")
-    wks = sh.worksheet("flow")
+    wks = sh.worksheet("test")
     rows = wks.get_all_values()[1:] # dont include headers
     con = sqlite3.connect(db)
     cur = con.cursor()
@@ -67,9 +70,50 @@ def pull():
         wks.batch_clear(clear)
         return (False, fail)
 
+def fix_cats():
+    """
+    lists all categories in db not in categories.csv
+    asks users to switch rows from non-csv to csv categories
+    """
+    # get categories from csv
+    cats = []
+    with open(cat_path, newline='') as csvfile:
+        c_rows = csv.reader(csvfile, delimiter=',')
+        for r in c_rows:
+            for c in r:
+                if not c.startswith('#'):
+                    cats.append(c)
+    # get unique categories in db
+    con = sqlite3.connect(db)
+    cur = con.cursor()
+    cur.execute("SELECT DISTINCT cat FROM flow")
+    db_cats = cur.fetchall()
+    # compare
+    wrong = []
+    for c in db_cats:
+        if c[0] not in cats:
+            wrong.append(c[0])
+    # choose swap
+    for i, c in enumerate(wrong, 1):
+        print(str(i) + ": " + c)
+    wi = ask_for_int("index of category to fix, '0' to quit: ", len(wrong))
+    if wi == 0:
+        return
+    for i, c in enumerate(cats, 1):
+        print(str(i) + ": " + c)
+    ci = ask_for_int("index of correct category, '0' to quit: ", len(cats))
+    if ci == 0:
+        return
+    # swap
+    with con:
+        cur.execute("UPDATE flow SET cat = ? WHERE cat = ?",
+                    (cats[ci - 1], wrong[wi - 1]))
+    con.close()
+    return
+
 def main():
     "command line ui"
-    functions = (pull, test)
+    functions = (pull, fix_cats)
     for i, f in enumerate(functions, 1):
         print(str(i) + ": " + f.__name__)
     sel = ask_for_int("select function index, enter '0' to quit: ", len(functions))
