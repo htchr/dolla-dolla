@@ -27,7 +27,6 @@ def ask_for_int(message, max=1000000000):
         except:
             print("please enter an integer")
 
-
 def pull():
     """
     move transaction values from google sheets to money.db
@@ -36,39 +35,41 @@ def pull():
     """
     sa = gspread.service_account()
     sh = sa.open("money")
-    wks = sh.worksheet("test")
+    wks = sh.worksheet("flow")
     rows = wks.get_all_values()[1:] # dont include headers
     con = sqlite3.connect(db)
     cur = con.cursor()
     fail = []
-    for i, r in enumerate(rows, 2):
-        try:
-            with con:
-                cur.execute("INSERT INTO flow VALUES (NULL,?,?,?,?,?,?,?,?,?,?)",
-                            (float(r[0]), # amount
-                             r[1], # curency
-                             int(bool(r[2])), # cc
-                             int(bool(r[3])), # out
-                             int(r[4]), # yyyymmdd
-                             int(r[4][:4]), # yyyy
-                             int(r[4][4:6]), # mm
-                             int(r[4][-2:]), # dd
-                             r[5], # category
-                             r[6])) # notes
-        except:
-            fail.append(i)
+    for r in rows:
+        print(r)
+        if r[0] == '' or r[0] == '0':
+            fail.append(r)
+        else:
+            try:
+                with con:
+                    cur.execute("INSERT INTO flow VALUES (NULL,?,?,?,?,?,?,?,?,?,?)",
+                                (float(r[0]), # amount
+                                 str(r[1]), # curency
+                                 int(bool(r[2])), # cc
+                                 int(bool(r[3])), # out
+                                 int(r[4]), # yyyymmdd
+                                 int(r[4][:4]), # yyyy
+                                 int(r[4][4:6]), # mm
+                                 int(r[4][-2:]), # dd
+                                 r[5], # category
+                                 r[6])) # notes
+            except:
+                fail.append(r)
     con.close()
+    wks.batch_clear(["A2:G900"])
+    for i in range(len(fail)):
+        fail[i] = ['0' if j == '' else j for j in fail[i]] 
+        print(fail[i])
+    wks.update("A2:G" + str(len(fail) + 1), fail)
     if len(fail) == 0:
-        wks.batch_clear(["A2:G900"])
         return (True, len(rows))
     else:
-        clear = []
-        cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-        for i in range(2, 900):
-            for c in cols:
-                clear.append(c + str(i))
-        wks.batch_clear(clear)
-        return (False, fail)
+        return (False, len(fail))
 
 def fix_cats():
     """
