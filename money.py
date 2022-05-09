@@ -2,7 +2,9 @@
 
 import sqlite3
 import csv
+import datetime
 import gspread
+import matplotlib.pyplot as plt
 
 db = "/Users/jack/Documents/projects/22-dolla/money.db"
 cat_path = "/Users/jack/Documents/projects/22-dolla/categories.csv"
@@ -27,6 +29,30 @@ def ask_for_int(message, max=1000000000):
         except:
             print("please enter an integer")
 
+def get_cats(mode="all", groups=[]):
+    """
+    get a list of transaction category strings from categories.csv
+    ---
+    mode: string; all, in, out, groups (must have value for groups)
+    groups: list of string(s) of sub category(s) to include
+    returns: list of all included transaction categories
+    """
+    cats = []
+    if mode == "all":
+        groups = ["#move", "#in", "#give", "#later", "#pay", "#cola", "#spend", "#misc"]
+    elif mode == "in":
+        groups = ["#in"]
+    elif mode == "out":
+        groups = ["#give", "#later", "#pay", "#cola", "#spend", "#misc"]
+    with open(cat_path, newline='') as csvfile:
+        c_rows = csv.reader(csvfile, delimiter=',')
+        for r in c_rows:
+            if r[0] in groups:
+                cats = cats + r[1:]
+            else:
+                continue
+    return cats
+ 
 def pull():
     """
     move transaction values from google sheets to money.db
@@ -77,13 +103,7 @@ def fix_cats():
     asks users to switch rows from non-csv to csv categories
     """
     # get categories from csv
-    cats = []
-    with open(cat_path, newline='') as csvfile:
-        c_rows = csv.reader(csvfile, delimiter=',')
-        for r in c_rows:
-            for c in r:
-                if not c.startswith('#'):
-                    cats.append(c)
+    cats = get_cats()
     # get unique categories in db
     con = sqlite3.connect(db)
     cur = con.cursor()
@@ -112,9 +132,53 @@ def fix_cats():
     con.close()
     return
 
+def expense_pie(years=0, months=0):
+    """
+    plot a pie-chart of expenses
+    narrow down by year and month
+    ---
+    years: int
+    months: int
+    return: None
+    """
+    if not years:
+        year = datetime.datetime.now().date().year
+        years = [y for y in range(2022, year+1)]
+    if not months:
+        months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    years = list(years)
+    months = list(months)
+    out_cats = get_cats("out")
+    cats = {}
+    con = sqlite3.connect(db)
+    cur = con.cursor()
+    for y in years:
+        for m in months:
+            cur.execute("""SELECT * FROM flow WHERE 
+                           year = ?
+                           AND month = ?""",
+                        (y,m))
+            for r in cur.fetchall():
+                if r[9] not in out_cats:
+                    continue
+                elif r[9] not in list(cats.keys()):
+                    cats[r[9]] = 0
+                    cats[r[9]] += r[1]
+                else:
+                    cats[r[9]] += r[1]
+    con.close()
+    labels = []
+    total = sum(list(cats.values()))
+    for c, v in zip(list(cats.keys()), list(cats.values())):
+        labels.append(c + ' ' 
+                      + str(round((v / total) * 100, 2)) 
+                      + "%" + str(v))
+    plt.pie(list(cats.values()), labels=labels)
+    plt.show()
+
 def main():
     "command line ui"
-    functions = (pull, fix_cats)
+    functions = (pull, fix_cats, expense_pie)
     for i, f in enumerate(functions, 1):
         print(str(i) + ": " + f.__name__)
     sel = ask_for_int("select function index, enter '0' to quit: ", len(functions))
