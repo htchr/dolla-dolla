@@ -2,5 +2,6 @@
 /venv
 *.db
 *.swp
+*.pyc
 test.py
 categories.csv
