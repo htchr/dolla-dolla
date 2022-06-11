@@ -6,7 +6,7 @@ import datetime
 import gspread
 import matplotlib.pyplot as plt
 
-db = "/Users/jack/Documents/projects/22-dolla/money.db"
+db = "/Users/jack/Documents/logs/money.db"
 cat_path = "/Users/jack/Documents/projects/22-dolla/categories.csv"
 
 def ask_for_int(message, max=1000000000):
